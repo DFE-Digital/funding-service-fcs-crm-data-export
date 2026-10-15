@@ -1,0 +1,16 @@
+{
+	"name": "ds_sourcetable_entitydefinition_rest",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_sourcedatabseREST",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": "api/data/v9.0/EntityDefinitions"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

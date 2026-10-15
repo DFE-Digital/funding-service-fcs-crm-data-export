@@ -1,0 +1,28 @@
+{
+	"name": "RestResource1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_sourcedatabseREST",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"operation": {
+				"type": "string",
+				"defaultValue": "3"
+			},
+			"action": {
+				"type": "string",
+				"defaultValue": "3"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "api/data/v9.0/@{item().EntitySetName}?$filter=@{item().DeltaMarkerAttribute}%20gt%20@{item().DeltaMarker}&$select=@{item().Query}",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	}
+}

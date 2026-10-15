@@ -1,0 +1,18 @@
+{
+	"name": "Audit_RestResource_fetchxml",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_sourcedatabseREST",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "api/data/v9.2/audits?fetchXml=api/data/v9.2/audits?fetchXml=%3Cfetch%3E%0A%20%20%3Centity%20name%3D%22audit%22%3E%0A%20%20%20%20%3Cattribute%20name%3D%22objectid%22%20%2F%3E%0A%20%20%20%20%3Cattribute%20name%3D%22objecttypecode%22%20%2F%3E%0A%20%20%20%20%3Cattribute%20name%3D%22operation%22%20%2F%3E%0A%20%20%20%20%3Cattribute%20name%3D%22action%22%20%2F%3E%0A%20%20%20%20%3Cattribute%20name%3D%22createdon%22%20%2F%3E%0A%20%20%20%20%3Cattribute%20name%3D%22auditid%22%20%2F%3E%0A%20%20%20%20%3Cfilter%20type%3D%22and%22%3E%0A%20%20%20%20%20%20%3Ccondition%20attribute%3D%22createdon%22%20operator%3D%22gt%22%20value%3D%22@{variables('DeltaMarkerAudit')}%22%20%2F%3E%0A%20%20%20%20%20%20%3Ccondition%20attribute%3D%22createdon%22%20operator%3D%22le%22%20value%3D%22@{utcnow()}%22%20%2F%3E%0A%20%20%20%20%20%20%3Ccondition%20attribute%3D%22operation%22%20operator%3D%22eq%22%20value%3D%223%22%20%2F%3E%0A%20%20%20%20%20%20%3Ccondition%20attribute%3D%22action%22%20operator%3D%22eq%22%20value%3D%223%22%20%2F%3E%0A%20%20%20%20%20%20%3Ccondition%20attribute%3D%22objecttypecode%22%20operator%3D%22in%22%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10071%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10072%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10103%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E1%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10099%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10100%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10073%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10084%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10074%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10086%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3Cvalue%3E10085%3C%2Fvalue%3E%0A%20%20%20%20%20%20%20%20%3C!--%22sfa_contract%22--%3E%0A%20%20%20%20%20%20%3C%2Fcondition%3E%0A%20%20%20%20%3C%2Ffilter%3E%0A%20%20%3C%2Fentity%3E%0A%3C%2Ffetch%3E",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	}
+}

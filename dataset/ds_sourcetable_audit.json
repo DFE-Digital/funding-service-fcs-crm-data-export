@@ -1,0 +1,13 @@
+{
+	"name": "ds_sourcetable_audit",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_sourcedatabase",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "CommonDataServiceForAppsEntity",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

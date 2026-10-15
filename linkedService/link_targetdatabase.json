@@ -1,0 +1,37 @@
+{
+	"name": "link_targetdatabase",
+	"properties": {
+		"description": "Target azure sql database",
+		"parameters": {
+			"LS_DomainName": {
+				"type": "String"
+			},
+			"LS_DatabaseName": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "@{linkedService().LS_DomainName}",
+			"database": "@{linkedService().LS_DatabaseName}",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "fcsdeploy",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "DevSharedkv",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "fcsdeploy-password"
+			}
+		},
+		"connectVia": {
+			"referenceName": "IntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
+}

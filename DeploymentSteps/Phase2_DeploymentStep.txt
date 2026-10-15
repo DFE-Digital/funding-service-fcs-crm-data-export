@@ -1,0 +1,14 @@
+1.	Right now, Phase 1 Pipeline "CRMDataPooler" running in every 30 min on production, Stop “CRMDataPooler” pipeline trigger 
+2.	Deploy Phase 2 pipeline “pl-sync-fcscrm-entitydata-rest” on production.
+3.	“pl-sync-fcscrm-entitydata-rest” pipeline trigger should be stop. 
+4.	Execute  “Phase2_DESReplacement_pipeline_sqlscripts.sql” script from repository. 
+https://dev.azure.com/sfa-fcs/FCT/_git/FCS-Azure-CRMDataExport?path=%2FSqlScript%2FPhase2_DESReplacement_pipeline_sqlscripts.sql&version=GBmain
+
+5.	Execute  “Phase2_AddNONCLUSTEREDIndex.sql” script from repository.  (note – this script will take time to execute approx. – 15-20 min)
+https://dev.azure.com/sfa-fcs/FCT/_git/FCS-Azure-CRMDataExport?path=/SqlScript/Phase2_AddNONCLUSTEREDIndex.sql&version=GBmain
+
+6.	Execute "pl-crmcopyentitymetadata-rest" manually (wait for complete pipeline execution)
+7.	Verify Database changes (Developer Task)
+8.	Execute " pl-sync-fcscrm-entitydata-rest " manually (wait for complete pipeline execution)
+Note – This pipeline execution will take 1-2 Hr for first run. 
+9.	After complete manual run execution Set trigger of “pl-sync-fcscrm-entitydata-rest” pipeline ( for every 30 min)

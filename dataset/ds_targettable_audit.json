@@ -1,0 +1,700 @@
+{
+	"name": "ds_targettable_audit",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_targetdatabase",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"LS_DomainName": {
+					"value": "@dataset().DomainName",
+					"type": "Expression"
+				},
+				"LS_DatabaseName": {
+					"value": "@dataset().DatabaseName",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"DomainName": {
+				"type": "string"
+			},
+			"DatabaseName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Id",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "SinkCreatedOn",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "SinkModifiedOn",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "statecode",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "statuscode",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_hierarchytype",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_contractstatus",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_inflightnewstartssuspendedreason",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_serviceresponse",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_defaultnewstartssuspendedreason",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_terminationreason",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_inflightterminationreason",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_amendmenttype",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_readyforupdates",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_lastapprovedversion",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_initiateamendment",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_skipcaseloadassignment",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_isnonfinancialamendment",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_terminationvalidcheck",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_skipreviewandinternalapproval",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_documentationrequired",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_skipdocumentmerge",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_latestversion",
+				"type": "bit"
+			},
+			{
+				"name": "sfa_nfainprogress",
+				"type": "bit"
+			},
+			{
+				"name": "owninguser",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "owninguser_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "transactioncurrencyid",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "transactioncurrencyid_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contracttype",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_contracttype_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_providername",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_providername_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_fundingtype",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_fundingtype_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "owningteam",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "owningteam_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_taskownerforclosure",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_taskownerforclosure_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_currenttask",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_currenttask_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contractadviser",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_contractadviser_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "modifiedonbehalfby",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "modifiedonbehalfby_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_approvalrequestedby",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_approvalrequestedby_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_nextaction",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_nextaction_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_taskownerpriorclosure",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_taskownerpriorclosure_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contractapprovedby",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_contractapprovedby_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_previousversion",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_previousversion_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_lastworkflowhistory",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_lastworkflowhistory_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "modifiedby",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "modifiedby_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_terminationselection",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_terminationselection_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "createdby",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "createdby_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_specialtaskowner",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_specialtaskowner_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_parentcontractid",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_parentcontractid_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "owningbusinessunit",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "owningbusinessunit_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_periodid",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_periodid_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_substatus",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_substatus_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "createdonbehalfby",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "createdonbehalfby_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ownerid",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "ownerid_entitytype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contractvalue",
+				"type": "decimal",
+				"precision": 38,
+				"scale": 4
+			},
+			{
+				"name": "sfa_contractvalue_base",
+				"type": "decimal",
+				"precision": 38,
+				"scale": 4
+			},
+			{
+				"name": "sfa_specialtaskowneryominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "importsequencenumber",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_currenttaskname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_subversion",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_correlation",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_parentcontractidname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_providernameyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_providernamename",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_taskownerforclosureyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_lastworkflowhistoryname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_inflightstopnewstartsdate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "createdbyname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_specialtaskownername",
+				"type": "nvarchar"
+			},
+			{
+				"name": "owneridname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_upin",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_datewithdrawn",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_contractpublisheddate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "createdonbehalfbyname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_datepublished",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_periodidname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contractapprovedbyyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contractadvisername",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_startdate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "modifiedbyname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "exchangerate",
+				"type": "decimal",
+				"precision": 38,
+				"scale": 10
+			},
+			{
+				"name": "sfa_fundingtypename",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_inflightinitiateamendment",
+				"type": "nvarchar"
+			},
+			{
+				"name": "versionnumber",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "sfa_approvalrequestedbyname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_terminationdate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_terminationinprogress",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_statuslastupdateddate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_ukprn",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_intent",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_reasonforrejection",
+				"type": "nvarchar"
+			},
+			{
+				"name": "modifiedonbehalfbyname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contractapprovaldate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_number",
+				"type": "nvarchar"
+			},
+			{
+				"name": "transactioncurrencyidname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "createdon",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "overriddencreatedon",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_inflightterminationdate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_contractid",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "sfa_previousversionname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_taskownerpriorclosureyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "createdonbehalfbyyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_approvalrequestedbyyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "utcconversiontimezonecode",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_version",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "sfa_taskownerforclosurename",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_inflightterminationcomments",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_substatusname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "owneridyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "createdbyyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_terminationselectionname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "modifiedon",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_defaultstopnewstartsdate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_variation",
+				"type": "decimal",
+				"precision": 38,
+				"scale": 2
+			},
+			{
+				"name": "sfa_terminationcomments",
+				"type": "nvarchar"
+			},
+			{
+				"name": "modifiedbyyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contracttypename",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contractidentifier",
+				"type": "nvarchar"
+			},
+			{
+				"name": "modifiedonbehalfbyyominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_taskownerpriorclosurename",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_description",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contractadviseryominame",
+				"type": "nvarchar"
+			},
+			{
+				"name": "owneridtype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_contractapprovedbyname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_enddate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "sfa_documentation",
+				"type": "nvarchar"
+			},
+			{
+				"name": "sfa_nextactionname",
+				"type": "nvarchar"
+			},
+			{
+				"name": "timezoneruleversionnumber",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "owningbusinessunitname",
+				"type": "nvarchar"
+			}
+		],
+		"typeProperties": {
+			"schema": {
+				"value": "dbo",
+				"type": "Expression"
+			},
+			"table": "audit"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

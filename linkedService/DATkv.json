@@ -1,0 +1,10 @@
+{
+	"name": "DATkv",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://fcs-dev-dat-kv.vault.azure.net/"
+		}
+	}
+}

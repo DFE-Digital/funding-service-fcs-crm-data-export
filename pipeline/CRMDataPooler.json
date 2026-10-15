@@ -1,0 +1,288 @@
+{
+	"name": "CRMDataPooler",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetEntityList",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[dbo].[GetConfigurationDataAndLastSyncTimestamp]",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_targetdb",
+						"type": "DatasetReference",
+						"parameters": {
+							"DomainName": {
+								"value": "@pipeline().globalParameters.DomainName",
+								"type": "Expression"
+							},
+							"DatabaseName": {
+								"value": "@pipeline().globalParameters.DatabaseName",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Trigger pipeline_CopyAndStoreDeltaData",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "GetEntityList",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "CopyAndStoreDeltaData",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"entitylist": {
+							"value": "@activity('GetEntityList').output.value",
+							"type": "Expression"
+						},
+						"DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Get Status of all entities",
+				"description": "Get all entities running status",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Wait1",
+						"dependencyConditions": [
+							"Skipped"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[dbo].[GetStatusOfAllEntities]",
+						"storedProcedureParameters": {
+							"IsCopyAllEntity": {
+								"type": "Boolean",
+								"value": {
+									"value": "@bool(variables('VAR_Copy_Status'))",
+									"type": "Expression"
+								}
+							},
+							"Pipeline": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_targetdb",
+						"type": "DatasetReference",
+						"parameters": {
+							"DomainName": {
+								"value": "@pipeline().globalParameters.DomainName",
+								"type": "Expression"
+							},
+							"DatabaseName": {
+								"value": "@pipeline().globalParameters.DatabaseName",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "Post Slack Message",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Get Status of all entities",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "@pipeline().globalParameters.SlackURL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@{activity('Get Status of all entities').output.firstRow}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SET_VAR_success_flag",
+				"description": "status flag for copy activity is completed completed for all entitles",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Trigger pipeline_CopyAndStoreDeltaData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "VAR_Copy_Status",
+					"value": true
+				}
+			},
+			{
+				"name": "SET_VAR_Fail_flag",
+				"description": "status flag for copy activity is not completed for all entitles",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Trigger pipeline_CopyAndStoreDeltaData",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "VAR_Copy_Status",
+					"value": false
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "SET_VAR_success_flag",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "SET_VAR_Fail_flag",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "ACT_Save_Pipelinestatus",
+				"description": "For each entity processed save audit log status in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Get Status of all entities",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "PipelineStatus",
+						"ActivityOutput": {
+							"value": "@string(variables('VAR_Copy_Status'))",
+							"type": "Expression"
+						},
+						"DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"variables": {
+			"VAR_Copy_Status": {
+				"type": "Boolean"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-10-23T23:39:51Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

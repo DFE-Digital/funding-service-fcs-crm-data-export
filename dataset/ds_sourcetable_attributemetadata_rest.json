@@ -1,0 +1,19 @@
+{
+	"name": "ds_sourcetable_attributemetadata_rest",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_sourcedatabseREST",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "api/data/v9.0/EntityDefinitions(LogicalName='@{item().EntityName}')?$expand=Attributes($select=LogicalName,EntityLogicalName,MetadataId,IsValidODataAttribute,AttributeType,AttributeTypeName,IsPrimaryId,IsValidForAdvancedFind)",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,1288 @@
+{
+	"name": "pl-crmcopyentitymetadata-rest",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy-rest-sql-EntityMetadata",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "get access token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"additionalColumns": [
+							{
+								"name": "deltamarkerattributename",
+								"value": {
+									"value": "modifiedon",
+									"type": "Expression"
+								}
+							}
+						],
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"additionalHeaders": {
+							"Authorization": {
+								"value": "@concat('Bearer ',variables('crm_token'))",
+								"type": "Expression"
+							}
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"MetadataId"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "MetadataId"
+								},
+								"sink": {
+									"name": "MetadataId",
+									"type": "Guid"
+								}
+							},
+							{
+								"source": {
+									"path": "LogicalName"
+								},
+								"sink": {
+									"name": "EntityName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "EntitySetName"
+								},
+								"sink": {
+									"name": "EntitySetName",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "PrimaryIdAttribute"
+								},
+								"sink": {
+									"name": "PrimaryIdAttribute",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['deltamarkerattributename']"
+								},
+								"sink": {
+									"name": "DeltaMarkerAttribute",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": "$['value']",
+						"mapComplexValuesToString": true
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_sourcetable_entitydefinition_rest",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_targettable_copy_EntityMetadata",
+						"type": "DatasetReference",
+						"parameters": {
+							"DomainName": {
+								"value": "@pipeline().globalParameters.DomainName",
+								"type": "Expression"
+							},
+							"DatabaseName": {
+								"value": "@pipeline().globalParameters.DatabaseName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "generate token",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"headers": {
+						"Content-Type": {
+							"value": "application/x-www-form-urlencoded",
+							"type": "Expression"
+						}
+					},
+					"url": {
+						"value": "@pipeline().globalParameters.TokenURL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@concat('grant_type=client_credentials&client_id=',pipeline().globalParameters.TokenBodyClientID,'&client_secret=',pipeline().globalParameters.TokenBodyClientSecret,'&resource=',pipeline().globalParameters.TokenBodyResource)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "get access token",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "generate token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "crm_token",
+					"value": {
+						"value": "@activity('generate token').output.access_token",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Lukup-sql-entity-metadata",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Update Audit DeltaMarkerAttribute",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT [SourcetEntityId]\r\n      ,[EntityName]\r\n      ,[EntitySetName]\r\n      ,[PrimaryIdAttribute]\r\n      ,[MetadataId]\r\n      ,[InUse]\r\n  FROM [dbo].[EntityMetadata]\r\n  where EntityName \r\n  in (\r\n    'sfa_contract',\r\n\t'sfa_unitofprocurement',\r\n\t'account',\r\n\t'sfa_contractallocation',\r\n\t'sfa_status',\r\n\t'sfa_subnominalaggregation',\r\n\t'sfa_contractdeliverable',\r\n\t'sfa_fundingstreamperiod',\r\n\t'sfa_contractdeliverableperiod',\r\n\t'sfa_fundingtype',\r\n\t'sfa_fundingstreamperioddeliverable',\r\n  'sfa_contracttransitionhistory',\r\n  'sfa_Agency',\r\n  'sfa_FundingClaimReconciliation'\r\n     ) \r\n  and InUse=1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_targettable_copy_EntityMetadata",
+						"type": "DatasetReference",
+						"parameters": {
+							"DomainName": {
+								"value": "@pipeline().globalParameters.DomainName",
+								"type": "Expression"
+							},
+							"DatabaseName": {
+								"value": "@pipeline().globalParameters.DatabaseName",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "FrEch-Entitydefinition",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lukup-sql-entity-metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@array(activity('Lukup-sql-entity-metadata').output.value)",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Cpy-attributemetadata",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"additionalHeaders": {
+										"Authorization": {
+											"value": "@concat('Bearer ',variables('crm_token'))",
+											"type": "Expression"
+										}
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "upsert",
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": [
+											"MetadataId"
+										]
+									},
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "['LogicalName']"
+											},
+											"sink": {
+												"name": "AttributeName",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['EntityLogicalName']"
+											},
+											"sink": {
+												"name": "EntityName",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['MetadataId']"
+											},
+											"sink": {
+												"name": "MetadataId",
+												"type": "Guid"
+											}
+										},
+										{
+											"source": {
+												"path": "['IsValidODataAttribute']"
+											},
+											"sink": {
+												"name": "IsValidOdataAttribute",
+												"type": "Boolean"
+											}
+										},
+										{
+											"source": {
+												"path": "['AttributeType']"
+											},
+											"sink": {
+												"name": "AttributeType",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['IsPrimaryId']"
+											},
+											"sink": {
+												"name": "IsPrimaryId",
+												"type": "Boolean"
+											}
+										},
+										{
+											"source": {
+												"path": "['AttributeTypeName']['Value']"
+											},
+											"sink": {
+												"name": "AttributeTypeName",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "['IsValidForAdvancedFind']['Value']"
+											},
+											"sink": {
+												"name": "IsValidForAdvancedFind",
+												"type": "Boolean"
+											}
+										}
+									],
+									"collectionReference": "$['Attributes']",
+									"mapComplexValuesToString": false
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_sourcetable_attributemetadata_rest",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_targettable_CRMEntityAttributeMetadata",
+									"type": "DatasetReference",
+									"parameters": {
+										"DomainName": {
+											"value": "@pipeline().globalParameters.DomainName",
+											"type": "Expression"
+										},
+										"DatabaseName": {
+											"value": "@pipeline().globalParameters.DatabaseName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Cpy-stringattributemetadata",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Cpy-attributemetadata",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"additionalHeaders": {
+										"Authorization": {
+											"value": "@concat('Bearer ',variables('crm_token'))",
+											"type": "Expression"
+										}
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "upsert",
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": [
+											"MetadataId"
+										]
+									},
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "['MaxLength']"
+											},
+											"sink": {
+												"name": "MaxLength",
+												"type": "Int32"
+											}
+										},
+										{
+											"source": {
+												"path": "['MetadataId']"
+											},
+											"sink": {
+												"name": "MetadataId",
+												"type": "Guid"
+											}
+										}
+									],
+									"collectionReference": "$['value']",
+									"mapComplexValuesToString": true
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_sourcetable_stringattributemetadata_rest",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_targettable_CRMEntityAttributeMetadata",
+									"type": "DatasetReference",
+									"parameters": {
+										"DomainName": {
+											"value": "@pipeline().globalParameters.DomainName",
+											"type": "Expression"
+										},
+										"DatabaseName": {
+											"value": "@pipeline().globalParameters.DatabaseName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Cpy-decimalattributemetadata",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Cpy-stringattributemetadata",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"additionalHeaders": {
+										"Authorization": {
+											"value": "@concat('Bearer ',variables('crm_token'))",
+											"type": "Expression"
+										}
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "upsert",
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": [
+											"MetadataId"
+										]
+									},
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "['Precision']"
+											},
+											"sink": {
+												"name": "Precision",
+												"type": "Int32"
+											}
+										},
+										{
+											"source": {
+												"path": "['MetadataId']"
+											},
+											"sink": {
+												"name": "MetadataId",
+												"type": "Guid"
+											}
+										}
+									],
+									"collectionReference": "$['value']",
+									"mapComplexValuesToString": true
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_sourcetable_decimalattributemetadata_rest_copy1",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_targettable_CRMEntityAttributeMetadata",
+									"type": "DatasetReference",
+									"parameters": {
+										"DomainName": {
+											"value": "@pipeline().globalParameters.DomainName",
+											"type": "Expression"
+										},
+										"DatabaseName": {
+											"value": "@pipeline().globalParameters.DatabaseName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Cpy-lookupattributemetadata",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Cpy-decimalattributemetadata",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"httpRequestTimeout": "00:01:40",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"additionalHeaders": {
+										"Authorization": {
+											"value": "@concat('Bearer ',variables('crm_token'))",
+											"type": "Expression"
+										}
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "upsert",
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": [
+											"MetadataId"
+										]
+									},
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "['MetadataId']"
+											},
+											"sink": {
+												"name": "MetadataId",
+												"type": "Guid"
+											}
+										},
+										{
+											"source": {
+												"path": "Targets"
+											},
+											"sink": {
+												"name": "Targets",
+												"type": "String"
+											}
+										}
+									],
+									"collectionReference": "$['value']",
+									"mapComplexValuesToString": true
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_sourcetable_lookupattributemetadata_rest",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_targettable_CRMEntityAttributeMetadata",
+									"type": "DatasetReference",
+									"parameters": {
+										"DomainName": {
+											"value": "@pipeline().globalParameters.DomainName",
+											"type": "Expression"
+										},
+										"DatabaseName": {
+											"value": "@pipeline().globalParameters.DatabaseName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "ACT_copy_attributemetadata_failed_log",
+							"description": "log AttributeMetadata failed error ",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Cpy-attributemetadata",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Save_Audit_Log",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Pipeline": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@item().EntityName",
+										"type": "Expression"
+									},
+									"ActivityName": "Copy Attribute Metadata Failed",
+									"ActivityOutput": {
+										"value": "@activity('Cpy-attributemetadata').output.errors[0].Message",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "ACT_copy_stringmetadata_failed_log",
+							"description": "log AttributeMetadata failed error ",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Cpy-stringattributemetadata",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Save_Audit_Log",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Pipeline": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@item().EntityName",
+										"type": "Expression"
+									},
+									"ActivityName": "Copy Attribute Metadata Failed",
+									"ActivityOutput": {
+										"value": "@activity('Cpy-stringattributemetadata').output.errors[0].Message",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "ACT_copy_decimalattributemetadata_failed_log",
+							"description": "log Decimal Attribute Metadata failed error ",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Cpy-decimalattributemetadata",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Save_Audit_Log",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Pipeline": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@item().EntityName",
+										"type": "Expression"
+									},
+									"ActivityName": "Copy Attribute Metadata Failed",
+									"ActivityOutput": {
+										"value": "@activity('Cpy-decimalattributemetadata').output.errors[0].Message",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "ACT_copy_lookupattributemetadata_failed_Audit",
+							"description": "log lookup attribute metadata failed error ",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Cpy-lookupattributemetadata",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Save_Audit_Log",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Pipeline": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@item().EntityName",
+										"type": "Expression"
+									},
+									"ActivityName": "Copy Attribute Metadata Failed",
+									"ActivityOutput": {
+										"value": "@activity('Cpy-lookupattributemetadata').output.errors[0].Message",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "ACT_copy_lookupattributemetadata_Success_Audit1",
+							"description": "log lookup attribute metadata success",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Cpy-lookupattributemetadata",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Save_Audit_Log",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Pipeline": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@item().EntityName",
+										"type": "Expression"
+									},
+									"ActivityName": "Copy Attribute Metadata Completed",
+									"ActivityOutput": {
+										"value": "@string(activity('Cpy-lookupattributemetadata').output)",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "scr-sql-update-mapping",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "FrEch-Entitydefinition",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": "UPDATE dbo.CRMEntityAttributeMetadata SET\r\nMapping = '{\"source\":{\"path\":\"[''' + \r\n    case when AttributeTypeName in ('LookupType','CustomerType','OwnerType') then CONCAT('_',AttributeName,'_value') else AttributeName end + ''']\"},\"sink\":{\"name\":\"' + AttributeName + '\",\"type\":\"' + \r\n    case when AttributeTypeName = 'BigIntType' then 'Int64' \r\n    when AttributeTypeName = 'MoneyType' then 'Decimal'\r\n    when AttributeTypeName = 'IntegerType' then 'Int32'\r\n    when AttributeTypeName = 'EntityNameType' then 'String'\r\n    when AttributeTypeName = 'StateType' then 'Int32'\r\n    when AttributeTypeName = 'StatusType' then 'Int32'\r\n    when AttributeTypeName = 'CustomerType' then 'Guid'\r\n    when AttributeTypeName = 'PicklistType' then 'Int32'\r\n    when AttributeTypeName = 'MultiSelectPicklistType' then 'String'\r\n    when AttributeTypeName = 'UniqueidentifierType' then 'Guid'\r\n    when AttributeTypeName = 'MemoType' then 'String'\r\n    when AttributeTypeName = 'LookupType' then 'Guid'\r\n    when AttributeTypeName = 'ManagedPropertyType' then 'String'\r\n    when AttributeTypeName = 'OwnerType' then 'Guid'\r\n    when AttributeTypeName = 'VirtualType' then 'String'\r\n    when AttributeTypeName = 'PartyListType' then 'String'\r\n    else left(AttributeTypeName, len(AttributeTypeName)-4) end + '\"}}';\r\n\r\n\r\n/*UPDATE dbo.CRMEntityAttributeMetadata \r\nSET AdditionalcolumnsMapping='{\"name\":\"'+replace(replace(replace((Targets),'[',''),']',''),'\"','')+'entitytype\",\"value\":'+replace(replace(replace((Targets),'[',''),']',''),'\"\"','\"')+'}'\r\nwhere AttributeTypeName in ('LookupType','CustomerType','OwnerType')*/\r\n\r\nUPDATE dbo.CRMEntityAttributeMetadata \r\nSET AdditionalcolumnsMapping='{\"name\":\"'+replace(AttributeName,'\"','')+'_entitytype\",\"value\":'+replace(replace(replace((Targets),'[',''),']',''),'\"\"','\"')+'}'\r\nwhere AttributeTypeName in ('LookupType')\r\n\r\nUPDATE dbo.CRMEntityAttributeMetadata SET\r\nMapping = '' WHERE IsPrimaryId=1\r\nUPDATE dbo.CRMEntityAttributeMetadata SET\r\n    InUse = 0 \r\nWHERE AttributeName = 'documentbody' and EntityName = 'annotation';\r\n\r\n/*UPDATE dbo.EntityMetadata SET\r\n    DeltaMarkerAttribute = 'modifiedon',\r\n    DeltaMarker = '2022-08-01T01:01:00.000Z'\r\nWHERE EntityName NOT IN ('teammembership');\r\n\r\nUPDATE dbo.EntityMetadata SET\r\n    IsDeltaLoad = 0\r\nWHERE EntityName IN ('usersettings');\r\n\r\nUPDATE dbo.EntityMetadata SET\r\n    DeltaMarkerAttribute = 'versionnumber',\r\n    DeltaMarker = '0',\r\n    IsDeltaLoad = 0\r\nWHERE EntityName IN ('teammembership');*/"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "ACT_failed_token_generation_log",
+				"description": "If token generation is failed then log into  ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "generate token",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "Failed Token Generation",
+						"ActivityOutput": {
+							"value": "@activity('generate token').error.message",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ACT_REST_entitymetadata_failed_Log",
+				"description": "If rest call for copy entity metadata is failed then its log into database",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Copy-rest-sql-EntityMetadata",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "Copy REST SQL EntityMetadata Failed Audit",
+						"ActivityOutput": {
+							"value": "@activity('Copy-rest-sql-EntityMetadata').error.message",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ACT_update-mapping_failed_log",
+				"description": "Log src-sql-update mapping Failed Audit",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "scr-sql-update-mapping-addtionalcolumn",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "scr-sql-update-mapping Failed Audit",
+						"ActivityOutput": {
+							"value": "@activity('scr-sql-update-mapping').error.message",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set Success Copy Status",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "scr-sql-update-mapping-addtionalcolumn",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "VAR_Copy_Status",
+					"value": true
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Set Success Copy Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set failed Copy Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "Post Slack Message_pipelinepass",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set Success Copy Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "@pipeline().globalParameters.SlackURL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "{\"text\":\"Pipeline *@{pipeline().Pipeline}* Is succeeded\"}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ACT_Save_Pipelinestatus",
+				"description": "For each entity processed save audit log status in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Wait1",
+						"dependencyConditions": [
+							"Skipped"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "PipelineStatus",
+						"ActivityOutput": {
+							"value": "@string(variables('VAR_Copy_Status'))",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set failed Copy Status",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "FrEch-Entitydefinition",
+						"dependencyConditions": [
+							"Failed",
+							"Skipped"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "VAR_Copy_Status",
+					"value": false
+				}
+			},
+			{
+				"name": "Post Slack Message_pipelinefail",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set failed Copy Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "@pipeline().globalParameters.SlackURL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "{\"text\":\"Pipeline *@{pipeline().Pipeline}* Is failed\"}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "scr-sql-update-mapping-addtionalcolumn",
+				"description": "update lookup attribute mapping to add entry for additional column",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "scr-sql-update-mapping",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": "/*UPDATE dbo.CRMEntityAttributeMetadata\r\nSET Mapping=CONCAT((Mapping),',','{\"source\":{\"name\":\"'+replace(replace(replace((Targets),'[',''),']',''),'\"','')+'entitytype\",\"type\":\"String\"},\"sink\":{\"name\":\"'+AttributeName+'_entitytype\",\"type\":\"String\"}}')\r\nwhere AttributeTypeName in ('LookupType','CustomerType','OwnerType')\r\nUPDATE dbo.CRMEntityAttributeMetadata\r\nSET Mapping=CONCAT((Mapping),',','{\"source\":{\"name\":\"'+replace(AttributeName,'\"','')+'_entitytype\",\"type\":\"String\"},\"sink\":{\"name\":\"'+AttributeName+'_entitytype\",\"type\":\"String\"}}')\r\nwhere AttributeTypeName in ('LookupType','CustomerType','OwnerType')*/\r\n\r\nUPDATE dbo.CRMEntityAttributeMetadata\r\nSET Mapping=CONCAT((Mapping),',','{\"source\":{\"path\":\"['''+replace(AttributeName,'\"','')+'_entitytype'']\"},\"sink\":{\"name\":\"'+AttributeName+'_entitytype\",\"type\":\"String\"}}')\r\nwhere AttributeTypeName in ('LookupType','CustomerType','OwnerType')"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Update Audit DeltaMarkerAttribute",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Copy-rest-sql-EntityMetadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": "update EntityMetadata set DeltaMarkerAttribute='createdon' where EntityName='audit'"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"variables": {
+			"token": {
+				"type": "String"
+			},
+			"crm_token": {
+				"type": "String"
+			},
+			"item1": {
+				"type": "String"
+			},
+			"VAR_Copy_Status": {
+				"type": "Boolean"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-10-26T11:29:11Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

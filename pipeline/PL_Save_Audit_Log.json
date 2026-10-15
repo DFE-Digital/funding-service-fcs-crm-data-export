@@ -1,0 +1,98 @@
+{
+	"name": "PL_Save_Audit_Log",
+	"properties": {
+		"description": "Add Logs in  ADFPipelineAudit ",
+		"activities": [
+			{
+				"name": "Save Audit Log",
+				"description": "Save Audit log in ADFPipelineAudit table",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "SETVAR_FilterActivtyOutput",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "INSERT INTO [dbo].[ADFPipelineAudit]([Pipeline],[TableName],[ActivityName],[ActivityOutput],[CreatedDate]) VALUES ('@{pipeline().parameters.Pipeline}','@{pipeline().parameters.TableName}','@{pipeline().parameters.ActivityName}','@{variables('ActivityOutputFilter')}',GETDATE())",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "SETVAR_FilterActivtyOutput",
+				"description": "Replace ' with '' to execute sql query ",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ActivityOutputFilter",
+					"value": {
+						"value": "@replace(pipeline().parameters.ActivityOutput,variables('OldValue'),variables('NewValue') )",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"Pipeline": {
+				"type": "string"
+			},
+			"TableName": {
+				"type": "string"
+			},
+			"ActivityName": {
+				"type": "string"
+			},
+			"ActivityOutput": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"ActivityOutputFilter": {
+				"type": "String"
+			},
+			"OldValue": {
+				"type": "String",
+				"defaultValue": "'"
+			},
+			"NewValue": {
+				"type": "String",
+				"defaultValue": "''"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-10-23T23:33:00Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

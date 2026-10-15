@@ -1,0 +1,26 @@
+{
+	"name": "Audit_RestResource",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_sourcedatabseREST",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"DeltaMarker": {
+				"type": "string"
+			},
+			"RestAuditTable": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "api/data/v9.2/audits?$filter=createdon%20ge%20@{dataset().DeltaMarker}%20and%20operation%20eq%203%20and%20action%20eq%203%20and%20objecttypecode%20eq%20'@{dataset().RestAuditTable}'&$select=objecttypecode,_objectid_value,versionnumber,action,operation,createdon,auditid",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	}
+}

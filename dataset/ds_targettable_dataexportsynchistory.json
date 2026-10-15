@@ -1,0 +1,43 @@
+{
+	"name": "ds_targettable_dataexportsynchistory",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_targetdatabase",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Id",
+				"type": "uniqueidentifier"
+			},
+			{
+				"name": "LastSyncOn",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "LastRunOn",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "Status",
+				"type": "tinyint",
+				"precision": 3
+			},
+			{
+				"name": "SourcetEntityId",
+				"type": "uniqueidentifier"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "DataExportSyncHistory"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

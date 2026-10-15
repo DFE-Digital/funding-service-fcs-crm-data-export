@@ -1,0 +1,10 @@
+{
+	"name": "DevSharedkv",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://fcs-dev-shared-kv.vault.azure.net/"
+		}
+	}
+}

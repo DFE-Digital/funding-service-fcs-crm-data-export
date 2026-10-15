@@ -1,0 +1,31 @@
+{
+	"name": "ds_targetdb",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_targetdatabase",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"LS_DomainName": {
+					"value": "@dataset().DomainName",
+					"type": "Expression"
+				},
+				"LS_DatabaseName": {
+					"value": "@dataset().DatabaseName",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"DomainName": {
+				"type": "string"
+			},
+			"DatabaseName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

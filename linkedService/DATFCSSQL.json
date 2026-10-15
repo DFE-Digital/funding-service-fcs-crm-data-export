@@ -1,0 +1,28 @@
+{
+	"name": "DATFCSSQL",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "fcsdev.database.windows.net",
+			"database": "fcs-dev-crmreplica-dat",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "fcsdeploy",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "DevSharedkv",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "fcsdeploy-password"
+			}
+		},
+		"connectVia": {
+			"referenceName": "IntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
+}

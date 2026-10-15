@@ -1,0 +1,940 @@
+{
+	"name": "pl-sync-fcscrm-entitydata-rest",
+	"properties": {
+		"activities": [
+			{
+				"name": "fel-crmentities",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "generate-entylist-entyconfiguration",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@array(activity('generate-entylist-entyconfiguration').output.resultSets[0].rows)",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "cpy-crmapi-getdata-sql",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "RestSource",
+									"additionalColumns": {
+										"type": "Expression",
+										"value": "@json(item().AdditionalColumnMapping)"
+									},
+									"httpRequestTimeout": "00:10:00",
+									"requestInterval": "00.00:00:00.010",
+									"requestMethod": "GET",
+									"additionalHeaders": {
+										"Authorization": {
+											"value": "@concat('Bearer ',variables('crm_token'))",
+											"type": "Expression"
+										},
+										"Prefer": "odata.maxpagesize=100"
+									},
+									"paginationRules": {
+										"AbsoluteUrl": "$['@odata.nextLink']"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "upsert",
+									"upsertSettings": {
+										"useTempDB": true,
+										"keys": {
+											"value": "@array(item().UpsertKey)",
+											"type": "Expression"
+										}
+									},
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"enableSkipIncompatibleRow": false,
+								"translator": {
+									"value": "@json(item().Mapping)",
+									"type": "Expression"
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "RestResource1",
+									"type": "DatasetReference",
+									"parameters": {
+										"operation": "3",
+										"action": "3"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_targettable_copy_rest",
+									"type": "DatasetReference",
+									"parameters": {
+										"DomainName": {
+											"value": "@pipeline().globalParameters.DomainName",
+											"type": "Expression"
+										},
+										"DatabaseName": {
+											"value": "@pipeline().globalParameters.DatabaseName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "upd delta marker-entitymetadata-tbl",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Set Max Modifiedon",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "link_targetdatabase",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"LS_DomainName": {
+										"value": "@pipeline().globalParameters.DomainName",
+										"type": "Expression"
+									},
+									"LS_DatabaseName": {
+										"value": "@pipeline().globalParameters.DatabaseName",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "update dbo.EntityMetadata set DeltaMarker = '@{variables('maxModifiedon')}'\nwhere EntityName = '@{item().EntityName}';",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "Insert last run ts-CRMDataExportSyncHistory_tbl",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Set Max Modifiedon",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "link_targetdatabase",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"LS_DomainName": {
+										"value": "@pipeline().globalParameters.DomainName",
+										"type": "Expression"
+									},
+									"LS_DatabaseName": {
+										"value": "@pipeline().globalParameters.DatabaseName",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "INSERT INTO [dbo].[CRMDataExportSyncHistory]\n           (\n            [DeltaMarker]\n           ,[LastRunOn]\n           ,[Status]\n           ,[EntityName]\n           ,[SourcetEntityId])\n     VALUES\n           (\n            '@{variables('maxModifiedon')}'\n            ,convert(varchar(51), coalesce(CURRENT_TIMESTAMP,'1900-01-01 01:01:01'), 127) + 'Z'\n           ,1\n           ,'@{item().EntityName}'\n           ,'@{item().SourcetEntityId}')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "Insert last fail ts-CRMDataExportSyncHistory_tbl_copy1",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "cpy-crmapi-getdata-sql",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "link_targetdatabase",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"LS_DomainName": {
+										"value": "@pipeline().globalParameters.DomainName",
+										"type": "Expression"
+									},
+									"LS_DatabaseName": {
+										"value": "@pipeline().globalParameters.DatabaseName",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "INSERT INTO [dbo].[CRMDataExportSyncHistory]\n           (\n            [DeltaMarker]\n           ,[LastRunOn]\n           ,[Status]\n           ,[EntityName]\n           ,[SourcetEntityId])\n     VALUES\n           (\n            convert(varchar(51), coalesce(CURRENT_TIMESTAMP,'1900-01-01 01:01:01'), 127) + 'Z'\n           ,convert(varchar(51), coalesce(CURRENT_TIMESTAMP,'1900-01-01 01:01:01'), 127) + 'Z'\n           ,0\n         ,'@{item().EntityName}'\n           ,'@{item().SourcetEntityId}')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "Set_Failed_Copy_Details",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "cpy-crmapi-getdata-sql",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Copy_Data_Output",
+								"value": {
+									"value": "@activity('cpy-crmapi-getdata-sql').output.errors[0].Message",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set_Success_Copy_Details",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "cpy-crmapi-getdata-sql",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Copy_Data_Output",
+								"value": {
+									"value": "@string(activity('cpy-crmapi-getdata-sql').output)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Wait1",
+							"type": "Wait",
+							"dependsOn": [
+								{
+									"activity": "Set_Failed_Copy_Details",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "Set_Success_Copy_Details",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						},
+						{
+							"name": "ACT_Copy_Save_Audit_Log",
+							"description": "For each entity processed save audit log status in ADFPipelineAudit table  ",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Wait1",
+									"dependencyConditions": [
+										"Skipped"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Save_Audit_Log",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Pipeline": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@item().EntityName",
+										"type": "Expression"
+									},
+									"ActivityName": "cpy-crmapi-getdata-sql",
+									"ActivityOutput": {
+										"value": "@variables('Copy_Data_Output')",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "ACT_update_delta marker_entity_failed_log",
+							"description": "Update delta marker entity failed log in ADFPipelineAudit table  ",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "upd delta marker-entitymetadata-tbl",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Save_Audit_Log",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Pipeline": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@item().EntityName",
+										"type": "Expression"
+									},
+									"ActivityName": "upd delta marker-entitymetadata-tbl",
+									"ActivityOutput": {
+										"value": "@string(activity('upd delta marker-entitymetadata-tbl').error)",
+										"type": "Expression"
+									},
+									"DomainName": {
+										"value": "@pipeline().globalParameters.DomainName",
+										"type": "Expression"
+									},
+									"DatabaseName": {
+										"value": "@pipeline().globalParameters.DatabaseName",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "If Condition_foreach",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "upd delta marker-entitymetadata-tbl",
+									"dependencyConditions": [
+										"Failed"
+									]
+								},
+								{
+									"activity": "cpy-crmapi-getdata-sql",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@variables('isError')",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Set_isError_copy1",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "isError",
+											"value": true
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Get Max modifiedon date",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "cpy-crmapi-getdata-sql",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "link_targetdatabase",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"LS_DomainName": {
+										"value": "@pipeline().globalParameters.DomainName",
+										"type": "Expression"
+									},
+									"LS_DatabaseName": {
+										"value": "@pipeline().globalParameters.DatabaseName",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "select max(modifiedon) deltamarker from dbo.@{item().EntityName} WITH (NOLOCK)",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "Set Max Modifiedon",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get Max modifiedon date",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "maxModifiedon",
+								"value": {
+									"value": "@concat(activity('Get Max modifiedon date').output.resultSets[0]['rows'][0].deltamarker,'Z')",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "generate-entylist-entyconfiguration",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "get access token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "with cte AS(\r\nSELECT a.EntityName,\r\nb.EntitySetName,\r\nCASE WHEN a.AttributeTypeName in ('LookupType','CustomerType','OwnerType') THEN CONCAT('_',AttributeName,'_value') ELSE a.AttributeName END as AttributeName,\r\nb.PrimaryIdAttribute,\r\na.Mapping,\r\na.AttributeTypeName,\r\na.AdditionalcolumnsMapping,\r\nb.DeltaMarkerAttribute,\r\nFORMAT(CAST(b.DeltaMarker AS DATETIME2), 'yyyy-MM-ddTHH:mm:ss') + 'Z' AS DeltaMarker,\r\nb.IsDeltaLoad,\r\nb.SourcetEntityId\r\nfrom [dbo].[CRMEntityAttributeMetadata] a with (nolock) join [dbo].[EntityMetadata] b with (nolock) on a.EntityName = b.EntityName\r\nwhere ((a.AttributeTypeName not in ('VirtualType','PartyListType','ImageType','EntityNameType') and a.IsValidForAdvancedFind=1) or a.IsPrimaryId=1)\r\nand a.EntityName in \r\n(\r\n\t'sfa_contract',\r\n\t'sfa_unitofprocurement',\r\n\t'account',\r\n\t'sfa_contractallocation',\r\n\t'sfa_status',\r\n\t'sfa_subnominalaggregation',\r\n\t'sfa_contractdeliverable',\r\n\t'sfa_fundingstreamperiod',\r\n\t'sfa_contractdeliverableperiod',\r\n\t'sfa_fundingtype',\r\n\t'sfa_fundingstreamperioddeliverable',\r\n\t'sfa_contracttransitionhistory',\r\n\t'sfa_Agency',\r\n\t'sfa_FundingClaimReconciliation'\r\n) \r\nand a.InUse=1 and b.InUse=1\r\n)\r\n\r\nSELECT EntityName,EntitySetName,PrimaryIdAttribute,DeltaMarkerAttribute,SourcetEntityId,\r\ncase when DeltaMarker is null then convert(varchar(51), DATEADD(HOUR, 0, CONVERT(DATETIME, CONVERT(DATE, GETDATE()-15))), 127) + 'Z' else  DeltaMarker end as DeltaMarker,                                         /*'2022-10-31T20:00:00Z'*/\r\nIsDeltaLoad,'Id' as UpsertKey,\r\nSTRING_AGG(CONVERT(nvarchar(max),AttributeName),',') as Query,\r\n'{\"type\":\"TabularTranslator\",\"mappings\":['+'{\"source\":{\"path\":\"['''+PrimaryIdAttribute+''']\"},\"sink\":{\"name\":\"Id\",\"type\":\"Guid\"}},' + STRING_AGG(CONVERT(nvarchar(max),Mapping),',')+'],\"collectionReference\":\"$[''value'']\",\"mapComplexValuesToString\":true}' as Mapping,\r\n'['+ STRING_AGG(CONVERT(nvarchar(max),AdditionalcolumnsMapping),',')+']' as AdditionalColumnMapping\r\nfrom cte where Mapping!=''\r\ngroup by EntityName,EntitySetName,PrimaryIdAttribute,DeltaMarkerAttribute,DeltaMarker,IsDeltaLoad,SourcetEntityId\r\n"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "generate token",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"url": {
+						"value": "@pipeline().globalParameters.TokenURL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@concat('grant_type=client_credentials&client_id=',pipeline().globalParameters.TokenBodyClientID,'&client_secret=',pipeline().globalParameters.TokenBodyClientSecret,'&resource=',pipeline().globalParameters.TokenBodyResource)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "get access token",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "generate token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "crm_token",
+					"value": {
+						"value": "@activity('generate token').output.access_token",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ACT_failed_TokenGenrate_Audit",
+				"description": "For each entity processed save audit log status in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "generate token",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "Failed Token Generation",
+						"ActivityOutput": {
+							"value": "@activity('generate token').error.message",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ACT_generate-entylist-entyconfiguration_Failed_Audit",
+				"description": "Log Sql Entity Metadata Failed Audit",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "generate-entylist-entyconfiguration",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "Copy REST SQL EntityMetadata Failed Audit",
+						"ActivityOutput": {
+							"value": "@activity('generate-entylist-entyconfiguration').error.message",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ACT_Save_Pipelinestatus_Status",
+				"description": "Log Pipeline status in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Get Status of all entities",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "PipelineStatus",
+						"ActivityOutput": {
+							"value": "@string(variables('Copy_Status'))",
+							"type": "Expression"
+						},
+						"DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Post Slack Message Pass",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "ACT_Save_Pipelinestatus_Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "@pipeline().globalParameters.SlackURL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@{activity('Get Status of all entities').output.firstRow}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ACT_Set_Copy_Status_Pass",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "fel-crmentities",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Copy_Status",
+					"value": true
+				}
+			},
+			{
+				"name": "ACT_Set_Copy_Status_Fail",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "fel-crmentities",
+						"dependencyConditions": [
+							"Failed",
+							"Skipped"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Copy_Status",
+					"value": false
+				}
+			},
+			{
+				"name": "Wait2",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "ACT_Set_Copy_Status_Fail",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "ACT_Set_Copy_Status_Pass",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "Get Status of all entities",
+				"description": "Get all entities running status",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Wait2",
+						"dependencyConditions": [
+							"Skipped"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[dbo].[GetStatusOfAllEntitiesForEntityData]",
+						"storedProcedureParameters": {
+							"IsCopyAllEntity": {
+								"type": "Boolean",
+								"value": {
+									"value": "@bool(variables('Copy_Status'))",
+									"type": "Expression"
+								}
+							},
+							"Pipeline": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().Pipeline",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_targetdb",
+						"type": "DatasetReference",
+						"parameters": {
+							"DomainName": {
+								"value": "@pipeline().globalParameters.DomainName",
+								"type": "Expression"
+							},
+							"DatabaseName": {
+								"value": "@pipeline().globalParameters.DatabaseName",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "If Condition",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "generate-entylist-entyconfiguration",
+						"dependencyConditions": [
+							"Failed"
+						]
+					},
+					{
+						"activity": "generate token",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@variables('isError')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Set_isError",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "isError",
+								"value": true
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"maxModifiedon": {
+				"type": "String"
+			},
+			"crm_token": {
+				"type": "String"
+			},
+			"item1": {
+				"type": "String"
+			},
+			"Copy_Data_Output": {
+				"type": "String"
+			},
+			"Copy_Status": {
+				"type": "Boolean"
+			},
+			"isError": {
+				"type": "Boolean",
+				"defaultValue": false
+			}
+		},
+		"annotations": []
+	}
+}

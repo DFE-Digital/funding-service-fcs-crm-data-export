@@ -1,0 +1,415 @@
+{
+	"name": "CopyAndStoreDeltaData",
+	"properties": {
+		"activities": [
+			{
+				"name": "IterateSourceTables",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.entitylist",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "fetchlastsynctimestamp",
+							"description": "fetch delta data to get last timestamp of entity",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "ACT_Entity_Save_Audit_Log",
+									"dependencyConditions": [
+										"Completed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "CommonDataServiceForAppsSource",
+									"query": {
+										"value": "@{item().fetchlastrecordtimestampquery}",
+										"type": "Expression"
+									}
+								},
+								"dataset": {
+									"referenceName": "ds_sourcetable",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "IfRecordsPresent",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "fetchlastsynctimestamp",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@contains(string(activity('fetchlastsynctimestamp').output), 'firstRow')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "copy delta data",
+										"type": "Copy",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "CommonDataServiceForAppsSource",
+												"additionalColumns": {
+													"type": "Expression",
+													"value": "@json(item().SourceEntityLookupColumns)"
+												},
+												"query": {
+													"value": "@{item().fetchdataquery}",
+													"type": "Expression"
+												}
+											},
+											"sink": {
+												"type": "AzureSqlSink",
+												"writeBehavior": "upsert",
+												"upsertSettings": {
+													"useTempDB": true,
+													"keys": [
+														"@{item().UpsertKey}"
+													]
+												},
+												"sqlWriterUseTableLock": false,
+												"disableMetricsCollection": false
+											},
+											"enableStaging": false,
+											"enableSkipIncompatibleRow": false,
+											"validateDataConsistency": false,
+											"translator": {
+												"value": "@json(item().ColumnMapping)",
+												"type": "Expression"
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "ds_sourcetable",
+												"type": "DatasetReference"
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "ds_targettable",
+												"type": "DatasetReference",
+												"parameters": {
+													"DomainName": {
+														"value": "@pipeline().globalParameters.DomainName",
+														"type": "Expression"
+													},
+													"DatabaseName": {
+														"value": "@pipeline().globalParameters.DatabaseName",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"name": "ACT_GEN_SETVAR_Copy_Success_Message",
+										"description": "When copy activity is completed successfully for current entity then set success message to audit log",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "copy delta data",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "Var_CopyLog",
+											"value": {
+												"value": "@string(activity('copy delta data').output)",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "ACT_GEN_SETVAR_Copy_Fail_Message",
+										"description": "When copy activity is failed for current entity then set error message to audit  log",
+										"type": "SetVariable",
+										"dependsOn": [
+											{
+												"activity": "insert last pipeline_DataExportSyncHistory_tbl_failed",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "Var_CopyLog",
+											"value": {
+												"value": "@activity('copy delta data').output.errors[0].Message",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "Wait",
+										"type": "Wait",
+										"dependsOn": [
+											{
+												"activity": "ACT_GEN_SETVAR_Copy_Success_Message",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											},
+											{
+												"activity": "ACT_GEN_SETVAR_Copy_Fail_Message",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 1
+										}
+									},
+									{
+										"name": "ACT_Copy_Save_Audit_Log",
+										"description": "For each entity processed save audit log status in ADFPipelineAudit table  ",
+										"type": "ExecutePipeline",
+										"dependsOn": [
+											{
+												"activity": "Wait",
+												"dependencyConditions": [
+													"Skipped"
+												]
+											}
+										],
+										"policy": {
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "PL_Save_Audit_Log",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"Pipeline": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"TableName": {
+													"value": "@{item().SourceEntityname}",
+													"type": "Expression"
+												},
+												"ActivityName": "copy delta data",
+												"ActivityOutput": {
+													"value": "@variables('Var_CopyLog')",
+													"type": "Expression"
+												},
+												"DomainName": {
+													"value": "@pipeline().globalParameters.DomainName",
+													"type": "Expression"
+												},
+												"DatabaseName": {
+													"value": "@pipeline().globalParameters.DatabaseName",
+													"type": "Expression"
+												}
+											}
+										}
+									},
+									{
+										"name": "insert last pipeline run ts_DataExportSyncHistory_tbl",
+										"type": "Script",
+										"dependsOn": [
+											{
+												"activity": "copy delta data",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"linkedServiceName": {
+											"referenceName": "link_targetdatabase",
+											"type": "LinkedServiceReference",
+											"parameters": {
+												"LS_DomainName": {
+													"value": "@pipeline().globalParameters.DomainName",
+													"type": "Expression"
+												},
+												"LS_DatabaseName": {
+													"value": "@pipeline().globalParameters.DatabaseName",
+													"type": "Expression"
+												}
+											}
+										},
+										"typeProperties": {
+											"scripts": [
+												{
+													"type": "NonQuery",
+													"text": {
+														"value": "INSERT INTO [dbo].[DataExportSyncHistory]\n           (\n            [LastSyncOn]\n           ,[LastRunOn]\n           ,[Status]\n           ,[SourcetEntityId])\n     VALUES\n           (\n            FORMAT(CURRENT_TIMESTAMP,'yyyy-MM-dd hh:mm:ss tt')\n           ,'@{activity('fetchlastsynctimestamp').output.firstRow.modifiedon}'\n           ,1\n           ,'@{item().SourcetEntityId}')",
+														"type": "Expression"
+													}
+												}
+											]
+										}
+									},
+									{
+										"name": "insert last pipeline_DataExportSyncHistory_tbl_failed",
+										"type": "Script",
+										"dependsOn": [
+											{
+												"activity": "copy delta data",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"linkedServiceName": {
+											"referenceName": "link_targetdatabase",
+											"type": "LinkedServiceReference",
+											"parameters": {
+												"LS_DomainName": {
+													"value": "@pipeline().globalParameters.DomainName",
+													"type": "Expression"
+												},
+												"LS_DatabaseName": {
+													"value": "@pipeline().globalParameters.DatabaseName",
+													"type": "Expression"
+												}
+											}
+										},
+										"typeProperties": {
+											"scripts": [
+												{
+													"type": "NonQuery",
+													"text": {
+														"value": "INSERT INTO [dbo].[DataExportSyncHistory]\n\n           (\n\n            [LastSyncOn]\n\n           ,[LastRunOn]\n\n           ,[Status]\n\n           ,[SourcetEntityId])\n\n     VALUES\n\n           (\n\n            FORMAT(CURRENT_TIMESTAMP,'yyyy-MM-dd hh:mm:ss tt')\n\n           ,FORMAT(CURRENT_TIMESTAMP,'yyyy-MM-dd hh:mm:ss tt')\n\n           ,0\n\n           ,'@{item().SourcetEntityId}')",
+														"type": "Expression"
+													}
+												}
+											]
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "ACT_Entity_Save_Audit_Log",
+							"description": "For each entity processed save audit log status in ADFPipelineAudit table  ",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PL_Save_Audit_Log",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"Pipeline": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"TableName": {
+										"value": "@{item().SourceEntityname}",
+										"type": "Expression"
+									},
+									"ActivityName": {
+										"value": "Fetch metadata query",
+										"type": "Expression"
+									},
+									"ActivityOutput": {
+										"value": "@{item().fetchlastrecordtimestampquery}",
+										"type": "Expression"
+									},
+									"DomainName": {
+										"value": "@pipeline().globalParameters.DomainName",
+										"type": "Expression"
+									},
+									"DatabaseName": {
+										"value": "@pipeline().globalParameters.DatabaseName",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"entitylist": {
+				"type": "array"
+			}
+		},
+		"variables": {
+			"Var_CopyLog": {
+				"type": "String"
+			},
+			"LookupCRMDataLog": {
+				"type": "String"
+			},
+			"latesttimestamp": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-10-23T23:33:00Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

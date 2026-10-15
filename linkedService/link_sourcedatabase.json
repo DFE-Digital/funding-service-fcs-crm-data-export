@@ -1,0 +1,28 @@
+{
+	"name": "link_sourcedatabase",
+	"properties": {
+		"description": "Source Data verse environment",
+		"annotations": [],
+		"type": "CommonDataServiceForApps",
+		"typeProperties": {
+			"deploymentType": "Online",
+			"serviceUri": "https://fcs-dev-at.crm4.dynamics.com/",
+			"authenticationType": "AADServicePrincipal",
+			"servicePrincipalId": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0",
+			"servicePrincipalCredential": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "DATkv",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "CrmDataExportServicePrincipalClientSecret"
+			},
+			"servicePrincipalCredentialType": "ServicePrincipalKey"
+		},
+		"connectVia": {
+			"referenceName": "IntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
+}

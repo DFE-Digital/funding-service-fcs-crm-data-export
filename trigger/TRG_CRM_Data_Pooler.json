@@ -1,0 +1,25 @@
+{
+	"name": "TRG_CRM_Data_Pooler",
+	"properties": {
+		"description": "Trigger CRMDataPooler Pipeline",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "CRMDataPooler",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 15,
+				"startTime": "2023-04-20T06:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

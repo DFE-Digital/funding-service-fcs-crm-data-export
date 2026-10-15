@@ -1,0 +1,19 @@
+{
+	"name": "ds_sourcetable_stringattributemetadata_rest",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_sourcedatabseREST",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "api/data/v9.0/EntityDefinitions(LogicalName='@{item().EntityName}')/Attributes/Microsoft.Dynamics.CRM.StringAttributeMetadata?$select=MaxLength,MetadataId",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

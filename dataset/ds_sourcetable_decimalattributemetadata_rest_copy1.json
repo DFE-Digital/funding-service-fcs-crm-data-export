@@ -1,0 +1,19 @@
+{
+	"name": "ds_sourcetable_decimalattributemetadata_rest_copy1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_sourcedatabseREST",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "api/data/v9.0/EntityDefinitions(LogicalName='@{item().EntityName}')/Attributes/Microsoft.Dynamics.CRM.DecimalAttributeMetadata?$select=Precision,MetadataId",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

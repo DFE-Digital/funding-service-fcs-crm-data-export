@@ -1,0 +1,19 @@
+{
+	"name": "ds_sourcetable",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "link_sourcedatabase",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "CommonDataServiceForAppsEntity",
+		"schema": [],
+		"typeProperties": {
+			"entityName": {
+				"value": "@{item().SourceEntityname}",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

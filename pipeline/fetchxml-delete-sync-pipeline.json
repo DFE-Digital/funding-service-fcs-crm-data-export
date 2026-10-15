@@ -1,0 +1,1058 @@
+{
+	"name": "fetchxml-delete-sync-pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "generate-entylist-entyconfiguration",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "get access token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "SELECT EntityName,\r\nEntitySetName,\r\nPrimaryIdAttribute,\r\nDeltaMarkerAttribute,\r\n\r\nSourcetEntityId,\r\nDeltaMarker,\r\nIsDeltaLoad\r\n\r\nfrom [dbo].[EntityMetadata] \r\nwhere  EntityName='audit'"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "generate token",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/x-www-form-urlencoded"
+					},
+					"url": {
+						"value": "@pipeline().globalParameters.TokenURL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "@concat('grant_type=client_credentials&client_id=',pipeline().globalParameters.TokenBodyClientID,'&client_secret=',pipeline().globalParameters.TokenBodyClientSecret,'&resource=',pipeline().globalParameters.TokenBodyResource)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "get access token",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "generate token",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "crm_token",
+					"value": {
+						"value": "@activity('generate token').output.access_token",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ACT_failed_TokenGenrate_Audit",
+				"description": "save audit log status in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "generate token",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "Failed Token Generation",
+						"ActivityOutput": {
+							"value": "@activity('generate token').error.message",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ACT_generate-entylist-entyconfiguration_Failed_Audit",
+				"description": "Log Sql Entity configuration  Failed Audit",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "generate-entylist-entyconfiguration",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"ActivityName": "Copy REST SQL EntityMetadata Failed Audit",
+						"ActivityOutput": {
+							"value": "@activity('generate-entylist-entyconfiguration').error.message",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set isError_Token_failed",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "generate token",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "isError",
+					"value": true
+				}
+			},
+			{
+				"name": "Set isError_Gen_EntityList_Config",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "generate-entylist-entyconfiguration",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "isError",
+					"value": true
+				}
+			},
+			{
+				"name": "upd delta marker-entitymetadata-tbl",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Delete Sync Stored Procedure",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "update dbo.EntityMetadata set DeltaMarker =(\nselect top(1) convert(varchar(51), coalesce(createdon,'1900-01-01 01:01:01'), 127) + 'Z' from audit order by createdon desc\n)\nwhere EntityName = 'audit';",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "ACT_update_delta marker_entity_failed_log_copy1",
+				"description": "Update delta marker entity failed log in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "upd delta marker-entitymetadata-tbl",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"TableName": {
+							"value": "audit",
+							"type": "Expression"
+						},
+						"ActivityName": "upd delta marker-entitymetadata-tbl",
+						"ActivityOutput": {
+							"value": "@string(activity('upd delta marker-entitymetadata-tbl').error)",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Set isError_UpdateDeltaMarker",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "upd delta marker-entitymetadata-tbl",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "isError",
+					"value": true
+				}
+			},
+			{
+				"name": "Insert last run ts-CRMDataExportSyncHistory_tbl",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "fetch-xml-copy-data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "INSERT INTO [dbo].[CRMDataExportSyncHistory]\n           (\n            [DeltaMarker]\n           ,[LastRunOn]\n           ,[Status]\n           ,[EntityName]\n           ,[SourcetEntityId])\n     VALUES\n           (\n            convert(varchar(51), coalesce(CURRENT_TIMESTAMP,'1900-01-01 01:01:01'), 127) + 'Z'\n           ,convert(varchar(51), coalesce(CURRENT_TIMESTAMP,'1900-01-01 01:01:01'), 127) + 'Z'\n           ,1\n          ,'audit'\n           ,(select SourcetEntityId from EntityMetadata where EntityName='audit')\n           )",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Insert last fail ts-CRMDataExportSyncHistory_tbl",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "fetch-xml-copy-data",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "INSERT INTO [dbo].[CRMDataExportSyncHistory]\n           (\n            [DeltaMarker]\n           ,[LastRunOn]\n           ,[Status]\n           ,[EntityName]\n           ,[SourcetEntityId])\n     VALUES\n           (\n            convert(varchar(51), coalesce(CURRENT_TIMESTAMP,'1900-01-01 01:01:01'), 127) + 'Z'\n           ,convert(varchar(51), coalesce(CURRENT_TIMESTAMP,'1900-01-01 01:01:01'), 127) + 'Z'\n           ,0\n          ,'audit'\n           ,(select SourcetEntityId from EntityMetadata where EntityName='audit')\n           )\n\n\n           ",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Set isError_CopyActivity",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "fetch-xml-copy-data",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "isError",
+					"value": true
+				}
+			},
+			{
+				"name": "ACT_Insert_CRMDataExportSyncHistory_failed_log_copy1",
+				"description": "insert activity for CRMDataExportSyncHistory table failed log  status in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Insert last run ts-CRMDataExportSyncHistory_tbl",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"TableName": {
+							"value": "audit",
+							"type": "Expression"
+						},
+						"ActivityName": "Insert last run ts-CRMDataExportSyncHistory_tbl",
+						"ActivityOutput": {
+							"value": "@string(activity('Insert last run ts-CRMDataExportSyncHistory_tbl').error)",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Delete Sync Stored Procedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "fetch-xml-copy-data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[GetDeleteRecordGuidsFromAuditAndDeleteTheRecordsFromRespectiveTables]"
+				},
+				"linkedServiceName": {
+					"referenceName": "link_targetdatabase",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"LS_DomainName": {
+							"value": "@pipeline().globalParameters.DomainName",
+							"type": "Expression"
+						},
+						"LS_DatabaseName": {
+							"value": "@pipeline().globalParameters.DatabaseName",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Wait2",
+						"dependencyConditions": [
+							"Skipped"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@variables('isError')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Post Slack Message_Success",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "POST",
+								"url": {
+									"value": "@pipeline().globalParameters.SlackURL",
+									"type": "Expression"
+								},
+								"body": {
+									"value": "{\"text\":\"Pipeline *@{pipeline().Pipeline}* Is succeeded\"}",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Post Slack Message_Fail",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"method": "POST",
+								"url": {
+									"value": "@pipeline().globalParameters.SlackURL",
+									"type": "Expression"
+								},
+								"body": {
+									"value": "{\"text\":\"Pipeline *@{pipeline().Pipeline}* Is Failed\"}",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Set DeltaMarker",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "generate-entylist-entyconfiguration",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "DeltaMarkerAudit",
+					"value": {
+						"value": "@activity('generate-entylist-entyconfiguration').output.resultsets[0]['rows'][0]['DeltaMarker']",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ACT_InsertLastFailed_CRMDataExportSyncHistory_Log",
+				"description": "insert activity for CRMDataExportSyncHistory table failed log  status in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Insert last fail ts-CRMDataExportSyncHistory_tbl",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"TableName": {
+							"value": "audit",
+							"type": "Expression"
+						},
+						"ActivityName": "Insert last run ts-CRMDataExportSyncHistory_tbl",
+						"ActivityOutput": {
+							"value": "@string(activity('Insert last fail ts-CRMDataExportSyncHistory_tbl').error)\n\n",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ACTUpdate_DeletePipeline_Status",
+				"description": "Update Delete Pipeline Status  status in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "If Condition1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"TableName": {
+							"value": "Audit",
+							"type": "Expression"
+						},
+						"ActivityName": "Delete Sync pipeline Completed",
+						"ActivityOutput": {
+							"value": "@if(variables('isError'),'Fail' , 'Sucess')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Wait2",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Set isError_UpdateDeltaMarker",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set isError_CopyActivity",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "upd delta marker-entitymetadata-tbl",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "Set_Success_Copy_Details",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "fetch-xml-copy-data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Copy_Data_Output",
+					"value": {
+						"value": "@string(activity('fetch-xml-copy-data').output)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set_Failed_Copy_Details",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "fetch-xml-copy-data",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Copy_Data_Output",
+					"value": {
+						"value": "@activity('fetch-xml-copy-data').output.errors[0].Message",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ACT_Copy_Save_Audit_Log",
+				"description": "For each entity processed save audit log status in ADFPipelineAudit table  ",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Wait1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Save_Audit_Log",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"TableName": "Audit",
+						"ActivityName": "cpy-crmapi-getdata-sql",
+						"ActivityOutput": {
+							"value": "@variables('Copy_Data_Output')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Set_Success_Copy_Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set_Failed_Copy_Details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			},
+			{
+				"name": "fetch-xml-copy-data",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Set DeltaMarker",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "CommonDataServiceForAppsSource",
+						"query": {
+							"value": "<fetch><entity name=\"audit\"><attribute name=\"objectid\" /><attribute name=\"objecttypecode\" /><attribute name=\"operation\" /><attribute name=\"action\" /><attribute name=\"createdon\" /><attribute name=\"auditid\" /><filter type=\"and\"><condition attribute=\"createdon\" operator=\"gt\" value=\"@{variables('DeltaMarkerAudit')}\" /><condition attribute=\"createdon\" operator=\"le\" value=\"@{utcnow()}\" /><condition attribute=\"operation\" operator=\"eq\" value=\"3\" /><condition attribute=\"action\" operator=\"eq\" value=\"3\" /> <condition attribute=\"objecttypecode\" operator=\"in\"><value>10071</value><value>10072</value><value>10103</value><value>1</value><value>10099</value><value>10100</value><value>10073</value><value>10084</value><value>10074</value><value>10086</value><value>10085</value><value>10076</value></condition></filter></entity></fetch> \n",
+							"type": "Expression"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "upsert",
+						"upsertSettings": {
+							"useTempDB": true,
+							"keys": [
+								"auditid"
+							]
+						},
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "objecttypecode",
+									"type": "String"
+								},
+								"sink": {
+									"name": "objecttypecode"
+								}
+							},
+							{
+								"source": {
+									"name": "objectid",
+									"type": "Guid"
+								},
+								"sink": {
+									"name": "_objectid_value"
+								}
+							},
+							{
+								"source": {
+									"name": "action",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "action"
+								}
+							},
+							{
+								"source": {
+									"name": "operation",
+									"type": "Int32"
+								},
+								"sink": {
+									"name": "operation"
+								}
+							},
+							{
+								"source": {
+									"name": "createdon",
+									"type": "DateTime"
+								},
+								"sink": {
+									"name": "createdon"
+								}
+							},
+							{
+								"source": {
+									"name": "auditid",
+									"type": "Guid"
+								},
+								"sink": {
+									"name": "auditid"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_sourcetable_audit",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_targettable_audit",
+						"type": "DatasetReference",
+						"parameters": {
+							"DomainName": {
+								"value": "@pipeline().globalParameters.DomainName",
+								"type": "Expression"
+							},
+							"DatabaseName": {
+								"value": "@pipeline().globalParameters.DatabaseName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Post Slack Message Pass",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "ACTUpdate_DeletePipeline_Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "@pipeline().globalParameters.SlackURL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "{\"text\":\"Pipeline *@{pipeline().Pipeline}* Is succeeded\"}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Post Slack Message Pass_copy1",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Wait3",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": {
+						"value": "@pipeline().globalParameters.SlackURL",
+						"type": "Expression"
+					},
+					"body": {
+						"value": "{\"text\":\"Pipeline *@{pipeline().Pipeline}* Is failed\"}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Wait3",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "ACTUpdate_DeletePipeline_Status",
+						"dependencyConditions": [
+							"Skipped",
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			}
+		],
+		"variables": {
+			"a": {
+				"type": "String"
+			},
+			"crm_token": {
+				"type": "String"
+			},
+			"item1": {
+				"type": "String"
+			},
+			"Copy_Data_Output": {
+				"type": "String"
+			},
+			"Copy_Status": {
+				"type": "Boolean"
+			},
+			"isError": {
+				"type": "Boolean",
+				"defaultValue": false
+			},
+			"DeltaMarkerAudit": {
+				"type": "String"
+			},
+			"AuditTables": {
+				"type": "Array",
+				"defaultValue": [
+					"sfa_contract",
+					"sfa_contractallocation",
+					"sfa_unitofprocurement",
+					"account",
+					"sfa_status",
+					"sfa_subnominalaggregation",
+					"sfa_contractdeliverable",
+					"sfa_fundingstreamperiod",
+					"sfa_contractdeliverableperiod",
+					"sfa_fundingtype",
+					"sfa_fundingstreamperioddeliverable"
+				]
+			}
+		},
+		"annotations": []
+	}
+}
