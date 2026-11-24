@@ -1,0 +1,93 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "TestDF-FCS"
+		},
+		"DATFCSSQL_properties_typeProperties_server": {
+			"value": "fcsdev.database.windows.net"
+		},
+		"DATFCSSQL_properties_typeProperties_database": {
+			"value": "fcs-dev-crmreplica-dat"
+		},
+		"DATFCSSQL_properties_typeProperties_userName": {
+			"value": "fcsdeploy"
+		},
+		"DVFCSDAT_properties_typeProperties_serviceUri": {
+			"value": "https://fcs-dev-at.crm4.dynamics.com/"
+		},
+		"DVFCSDAT_properties_typeProperties_servicePrincipalId": {
+			"value": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+		},
+		"DevSharedkv_properties_typeProperties_baseUrl": {
+			"value": "https://fcs-dev-shared-kv.vault.azure.net/"
+		},
+		"WADLogsTable_properties_typeProperties_serviceEndpoint": {
+			"value": "https://fcsappstoragedev.table.core.windows.net/"
+		},
+		"link_azblobstorage_properties_typeProperties_serviceEndpoint": {
+			"value": "https://fcsappstoragedev.blob.core.windows.net/"
+		},
+		"link_sourcedatabase_properties_typeProperties_serviceUri": {
+			"value": "https://fcs-dev-at.crm4.dynamics.com/"
+		},
+		"link_sourcedatabase_properties_typeProperties_servicePrincipalId": {
+			"value": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+		},
+		"link_sourcedatabseREST_properties_typeProperties_url": {
+			"value": "https://fcs-dev-at.api.crm4.dynamics.com"
+		},
+		"link_sourcedatabseREST_properties_typeProperties_servicePrincipalId": {
+			"value": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+		},
+		"link_sourcedatabseREST_properties_typeProperties_tenant": {
+			"value": "fad277c9-c60a-4da1-b5f3-b3b8b34a82f9"
+		},
+		"link_sourcedatabseREST_properties_typeProperties_aadResourceId": {
+			"value": "https://fcs-dev-at.api.crm4.dynamics.com"
+		},
+		"link_targetdatabase_properties_typeProperties_server": {
+			"value": "@{linkedService().LS_DomainName}"
+		},
+		"link_targetdatabase_properties_typeProperties_database": {
+			"value": "@{linkedService().LS_DatabaseName}"
+		},
+		"link_targetdatabase_properties_typeProperties_userName": {
+			"value": "fcsdeploy"
+		},
+		"linkedService1_properties_typeProperties_serviceEndpoint": {
+			"value": "https://fcsappstoragedev.blob.core.windows.net/"
+		},
+		"DATkv_properties_typeProperties_baseUrl": {
+			"value": "https://fcs-dev-dat-kv.vault.azure.net/"
+		},
+		"default_properties_DomainName_value": {
+			"value": "fcsdev.database.windows.net"
+		},
+		"default_properties_DatabaseName_value": {
+			"value": "fcs-dev-crmreplica-dat"
+		},
+		"default_properties_TokenURL_value": {
+			"value": "https://login.microsoftonline.com/fad277c9-c60a-4da1-b5f3-b3b8b34a82f9/oauth2/token"
+		},
+		"default_properties_TokenBodyClientID_value": {
+			"value": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+		},
+		"default_properties_TokenBodyClientSecret_value": {
+			"value": ""
+		},
+		"default_properties_TokenBodyResource_value": {
+			"value": "https://fcs-dev-at.crm4.dynamics.com"
+		},
+		"default_properties_SlackURL_value": {
+			"value": ""
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}

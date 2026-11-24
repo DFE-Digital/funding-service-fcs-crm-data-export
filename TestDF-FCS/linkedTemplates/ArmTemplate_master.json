@@ -1,0 +1,264 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "TestDF-FCS"
+		},
+		"DATFCSSQL_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "fcsdev.database.windows.net"
+		},
+		"DATFCSSQL_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "fcs-dev-crmreplica-dat"
+		},
+		"DATFCSSQL_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "fcsdeploy"
+		},
+		"DVFCSDAT_properties_typeProperties_serviceUri": {
+			"type": "string",
+			"defaultValue": "https://fcs-dev-at.crm4.dynamics.com/"
+		},
+		"DVFCSDAT_properties_typeProperties_servicePrincipalId": {
+			"type": "string",
+			"defaultValue": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+		},
+		"DevSharedkv_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://fcs-dev-shared-kv.vault.azure.net/"
+		},
+		"WADLogsTable_properties_typeProperties_serviceEndpoint": {
+			"type": "string",
+			"defaultValue": "https://fcsappstoragedev.table.core.windows.net/"
+		},
+		"link_azblobstorage_properties_typeProperties_serviceEndpoint": {
+			"type": "string",
+			"defaultValue": "https://fcsappstoragedev.blob.core.windows.net/"
+		},
+		"link_sourcedatabase_properties_typeProperties_serviceUri": {
+			"type": "string",
+			"defaultValue": "https://fcs-dev-at.crm4.dynamics.com/"
+		},
+		"link_sourcedatabase_properties_typeProperties_servicePrincipalId": {
+			"type": "string",
+			"defaultValue": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+		},
+		"link_sourcedatabseREST_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://fcs-dev-at.api.crm4.dynamics.com"
+		},
+		"link_sourcedatabseREST_properties_typeProperties_servicePrincipalId": {
+			"type": "string",
+			"defaultValue": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+		},
+		"link_sourcedatabseREST_properties_typeProperties_tenant": {
+			"type": "string",
+			"defaultValue": "fad277c9-c60a-4da1-b5f3-b3b8b34a82f9"
+		},
+		"link_sourcedatabseREST_properties_typeProperties_aadResourceId": {
+			"type": "string",
+			"defaultValue": "https://fcs-dev-at.api.crm4.dynamics.com"
+		},
+		"link_targetdatabase_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "@{linkedService().LS_DomainName}"
+		},
+		"link_targetdatabase_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "@{linkedService().LS_DatabaseName}"
+		},
+		"link_targetdatabase_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "fcsdeploy"
+		},
+		"linkedService1_properties_typeProperties_serviceEndpoint": {
+			"type": "string",
+			"defaultValue": "https://fcsappstoragedev.blob.core.windows.net/"
+		},
+		"DATkv_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://fcs-dev-dat-kv.vault.azure.net/"
+		},
+		"default_properties_DomainName_value": {
+			"type": "string",
+			"defaultValue": "fcsdev.database.windows.net"
+		},
+		"default_properties_DatabaseName_value": {
+			"type": "string",
+			"defaultValue": "fcs-dev-crmreplica-dat"
+		},
+		"default_properties_TokenURL_value": {
+			"type": "string",
+			"defaultValue": "https://login.microsoftonline.com/fad277c9-c60a-4da1-b5f3-b3b8b34a82f9/oauth2/token"
+		},
+		"default_properties_TokenBodyClientID_value": {
+			"type": "string",
+			"defaultValue": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+		},
+		"default_properties_TokenBodyClientSecret_value": {
+			"type": "string",
+			"defaultValue": ""
+		},
+		"default_properties_TokenBodyResource_value": {
+			"type": "string",
+			"defaultValue": "https://fcs-dev-at.crm4.dynamics.com"
+		},
+		"default_properties_SlackURL_value": {
+			"type": "string",
+			"defaultValue": ""
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "TestDF-FCS_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"default_properties_DomainName_value": {
+						"value": "[parameters('default_properties_DomainName_value')]"
+					},
+					"default_properties_DatabaseName_value": {
+						"value": "[parameters('default_properties_DatabaseName_value')]"
+					},
+					"default_properties_TokenURL_value": {
+						"value": "[parameters('default_properties_TokenURL_value')]"
+					},
+					"default_properties_TokenBodyClientID_value": {
+						"value": "[parameters('default_properties_TokenBodyClientID_value')]"
+					},
+					"default_properties_TokenBodyClientSecret_value": {
+						"value": "[parameters('default_properties_TokenBodyClientSecret_value')]"
+					},
+					"default_properties_TokenBodyResource_value": {
+						"value": "[parameters('default_properties_TokenBodyResource_value')]"
+					},
+					"default_properties_SlackURL_value": {
+						"value": "[parameters('default_properties_SlackURL_value')]"
+					},
+					"DevSharedkv_properties_typeProperties_baseUrl": {
+						"value": "[parameters('DevSharedkv_properties_typeProperties_baseUrl')]"
+					},
+					"WADLogsTable_properties_typeProperties_serviceEndpoint": {
+						"value": "[parameters('WADLogsTable_properties_typeProperties_serviceEndpoint')]"
+					},
+					"linkedService1_properties_typeProperties_serviceEndpoint": {
+						"value": "[parameters('linkedService1_properties_typeProperties_serviceEndpoint')]"
+					},
+					"DATkv_properties_typeProperties_baseUrl": {
+						"value": "[parameters('DATkv_properties_typeProperties_baseUrl')]"
+					},
+					"DATFCSSQL_properties_typeProperties_server": {
+						"value": "[parameters('DATFCSSQL_properties_typeProperties_server')]"
+					},
+					"DATFCSSQL_properties_typeProperties_database": {
+						"value": "[parameters('DATFCSSQL_properties_typeProperties_database')]"
+					},
+					"DATFCSSQL_properties_typeProperties_userName": {
+						"value": "[parameters('DATFCSSQL_properties_typeProperties_userName')]"
+					},
+					"DVFCSDAT_properties_typeProperties_serviceUri": {
+						"value": "[parameters('DVFCSDAT_properties_typeProperties_serviceUri')]"
+					},
+					"DVFCSDAT_properties_typeProperties_servicePrincipalId": {
+						"value": "[parameters('DVFCSDAT_properties_typeProperties_servicePrincipalId')]"
+					},
+					"link_azblobstorage_properties_typeProperties_serviceEndpoint": {
+						"value": "[parameters('link_azblobstorage_properties_typeProperties_serviceEndpoint')]"
+					},
+					"link_sourcedatabase_properties_typeProperties_serviceUri": {
+						"value": "[parameters('link_sourcedatabase_properties_typeProperties_serviceUri')]"
+					},
+					"link_sourcedatabase_properties_typeProperties_servicePrincipalId": {
+						"value": "[parameters('link_sourcedatabase_properties_typeProperties_servicePrincipalId')]"
+					},
+					"link_sourcedatabseREST_properties_typeProperties_url": {
+						"value": "[parameters('link_sourcedatabseREST_properties_typeProperties_url')]"
+					},
+					"link_sourcedatabseREST_properties_typeProperties_servicePrincipalId": {
+						"value": "[parameters('link_sourcedatabseREST_properties_typeProperties_servicePrincipalId')]"
+					},
+					"link_sourcedatabseREST_properties_typeProperties_tenant": {
+						"value": "[parameters('link_sourcedatabseREST_properties_typeProperties_tenant')]"
+					},
+					"link_sourcedatabseREST_properties_typeProperties_aadResourceId": {
+						"value": "[parameters('link_sourcedatabseREST_properties_typeProperties_aadResourceId')]"
+					},
+					"link_targetdatabase_properties_typeProperties_server": {
+						"value": "[parameters('link_targetdatabase_properties_typeProperties_server')]"
+					},
+					"link_targetdatabase_properties_typeProperties_database": {
+						"value": "[parameters('link_targetdatabase_properties_typeProperties_database')]"
+					},
+					"link_targetdatabase_properties_typeProperties_userName": {
+						"value": "[parameters('link_targetdatabase_properties_typeProperties_userName')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "TestDF-FCS_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'TestDF-FCS_ArmTemplate_0')]"
+			]
+		},
+		{
+			"name": "TestDF-FCS_ArmTemplate_2",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_2.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'TestDF-FCS_ArmTemplate_1')]"
+			]
+		}
+	]
+}
