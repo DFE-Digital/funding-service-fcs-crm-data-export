@@ -4,112 +4,85 @@
 	"parameters": {
 		"factoryName": {
 			"type": "string",
-			"metadata": "Data Factory name",
-			"defaultValue": "TestDF-FCS"
+			"metadata": "Data Factory name"
 		},
 		"default_properties_DomainName_value": {
-			"type": "string",
-			"defaultValue": "fcsdev.database.windows.net"
+			"type": "string"
 		},
 		"default_properties_DatabaseName_value": {
-			"type": "string",
-			"defaultValue": "fcs-dev-crmreplica-dat"
+			"type": "string"
 		},
 		"default_properties_TokenURL_value": {
-			"type": "string",
-			"defaultValue": "https://login.microsoftonline.com/fad277c9-c60a-4da1-b5f3-b3b8b34a82f9/oauth2/token"
+			"type": "string"
 		},
 		"default_properties_TokenBodyClientID_value": {
-			"type": "string",
-			"defaultValue": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+			"type": "string"
 		},
 		"default_properties_TokenBodyClientSecret_value": {
-			"type": "string",
-			"defaultValue": ""
+			"type": "string"
 		},
 		"default_properties_TokenBodyResource_value": {
-			"type": "string",
-			"defaultValue": "https://fcs-dev-at.crm4.dynamics.com"
+			"type": "string"
 		},
 		"default_properties_SlackURL_value": {
-			"type": "string",
-			"defaultValue": ""
+			"type": "string"
 		},
-		"DevSharedkv_properties_typeProperties_baseUrl": {
-			"type": "string",
-			"defaultValue": "https://fcs-dev-shared-kv.vault.azure.net/"
+		"EnvSharedkv_properties_typeProperties_baseUrl": {
+			"type": "string"
 		},
 		"WADLogsTable_properties_typeProperties_serviceEndpoint": {
-			"type": "string",
-			"defaultValue": "https://fcsappstoragedev.table.core.windows.net/"
+			"type": "string"
 		},
 		"linkedService1_properties_typeProperties_serviceEndpoint": {
-			"type": "string",
-			"defaultValue": "https://fcsappstoragedev.blob.core.windows.net/"
+			"type": "string"
 		},
-		"DATkv_properties_typeProperties_baseUrl": {
-			"type": "string",
-			"defaultValue": "https://fcs-dev-dat-kv.vault.azure.net/"
+		"Envkv_properties_typeProperties_baseUrl": {
+			"type": "string"
 		},
 		"DATFCSSQL_properties_typeProperties_server": {
-			"type": "string",
-			"defaultValue": "fcsdev.database.windows.net"
+			"type": "string"
 		},
 		"DATFCSSQL_properties_typeProperties_database": {
-			"type": "string",
-			"defaultValue": "fcs-dev-crmreplica-dat"
+			"type": "string"
 		},
 		"DATFCSSQL_properties_typeProperties_userName": {
-			"type": "string",
-			"defaultValue": "fcsdeploy"
+			"type": "string"
 		},
 		"DVFCSDAT_properties_typeProperties_serviceUri": {
-			"type": "string",
-			"defaultValue": "https://fcs-dev-at.crm4.dynamics.com/"
+			"type": "string"
 		},
 		"DVFCSDAT_properties_typeProperties_servicePrincipalId": {
-			"type": "string",
-			"defaultValue": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+			"type": "string"
 		},
 		"link_azblobstorage_properties_typeProperties_serviceEndpoint": {
-			"type": "string",
-			"defaultValue": "https://fcsappstoragedev.blob.core.windows.net/"
+			"type": "string"
 		},
 		"link_sourcedatabase_properties_typeProperties_serviceUri": {
-			"type": "string",
-			"defaultValue": "https://fcs-dev-at.crm4.dynamics.com/"
+			"type": "string"
 		},
 		"link_sourcedatabase_properties_typeProperties_servicePrincipalId": {
-			"type": "string",
-			"defaultValue": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+			"type": "string"
 		},
 		"link_sourcedatabseREST_properties_typeProperties_url": {
-			"type": "string",
-			"defaultValue": "https://fcs-dev-at.api.crm4.dynamics.com"
+			"type": "string"
 		},
 		"link_sourcedatabseREST_properties_typeProperties_servicePrincipalId": {
-			"type": "string",
-			"defaultValue": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
+			"type": "string"
 		},
 		"link_sourcedatabseREST_properties_typeProperties_tenant": {
-			"type": "string",
-			"defaultValue": "fad277c9-c60a-4da1-b5f3-b3b8b34a82f9"
+			"type": "string"
 		},
 		"link_sourcedatabseREST_properties_typeProperties_aadResourceId": {
-			"type": "string",
-			"defaultValue": "https://fcs-dev-at.api.crm4.dynamics.com"
+			"type": "string"
 		},
 		"link_targetdatabase_properties_typeProperties_server": {
-			"type": "string",
-			"defaultValue": "@{linkedService().LS_DomainName}"
+			"type": "string"
 		},
 		"link_targetdatabase_properties_typeProperties_database": {
-			"type": "string",
-			"defaultValue": "@{linkedService().LS_DatabaseName}"
+			"type": "string"
 		},
 		"link_targetdatabase_properties_typeProperties_userName": {
-			"type": "string",
-			"defaultValue": "fcsdeploy"
+			"type": "string"
 		}
 	},
 	"variables": {
@@ -153,14 +126,14 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/DevSharedkv')]",
+			"name": "[concat(parameters('factoryName'), '/EnvSharedkv')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"annotations": [],
 				"type": "AzureKeyVault",
 				"typeProperties": {
-					"baseUrl": "[parameters('DevSharedkv_properties_typeProperties_baseUrl')]"
+					"baseUrl": "[parameters('EnvSharedkv_properties_typeProperties_baseUrl')]"
 				}
 			},
 			"dependsOn": []
@@ -233,14 +206,14 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/DATkv')]",
+			"name": "[concat(parameters('factoryName'), '/Envkv')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"annotations": [],
 				"type": "AzureKeyVault",
 				"typeProperties": {
-					"baseUrl": "[parameters('DATkv_properties_typeProperties_baseUrl')]"
+					"baseUrl": "[parameters('Envkv_properties_typeProperties_baseUrl')]"
 				}
 			},
 			"dependsOn": []
@@ -313,7 +286,7 @@
 					"password": {
 						"type": "AzureKeyVaultSecret",
 						"store": {
-							"referenceName": "DevSharedkv",
+							"referenceName": "EnvSharedkv",
 							"type": "LinkedServiceReference"
 						},
 						"secretName": "fcsdeploy-password"
@@ -326,7 +299,7 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/integrationRuntimes/IntegrationRuntime')]",
-				"[concat(variables('factoryId'), '/linkedServices/DevSharedkv')]"
+				"[concat(variables('factoryId'), '/linkedServices/EnvSharedkv')]"
 			]
 		},
 		{
@@ -344,7 +317,7 @@
 					"servicePrincipalCredential": {
 						"type": "AzureKeyVaultSecret",
 						"store": {
-							"referenceName": "DATkv",
+							"referenceName": "Envkv",
 							"type": "LinkedServiceReference"
 						},
 						"secretName": "CrmDataExportServicePrincipalClientSecret"
@@ -358,7 +331,7 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/integrationRuntimes/IntegrationRuntime')]",
-				"[concat(variables('factoryId'), '/linkedServices/DATkv')]"
+				"[concat(variables('factoryId'), '/linkedServices/Envkv')]"
 			]
 		},
 		{
@@ -398,7 +371,7 @@
 					"servicePrincipalCredential": {
 						"type": "AzureKeyVaultSecret",
 						"store": {
-							"referenceName": "DATkv",
+							"referenceName": "Envkv",
 							"type": "LinkedServiceReference"
 						},
 						"secretName": "CrmDataExportServicePrincipalClientSecret"
@@ -412,7 +385,7 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/integrationRuntimes/IntegrationRuntime')]",
-				"[concat(variables('factoryId'), '/linkedServices/DATkv')]"
+				"[concat(variables('factoryId'), '/linkedServices/Envkv')]"
 			]
 		},
 		{
@@ -430,7 +403,7 @@
 					"servicePrincipalKey": {
 						"type": "AzureKeyVaultSecret",
 						"store": {
-							"referenceName": "DATkv",
+							"referenceName": "Envkv",
 							"type": "LinkedServiceReference"
 						},
 						"secretName": "CrmDataExportServicePrincipalClientSecret"
@@ -445,7 +418,7 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/integrationRuntimes/integrationRuntimeCRM')]",
-				"[concat(variables('factoryId'), '/linkedServices/DATkv')]"
+				"[concat(variables('factoryId'), '/linkedServices/Envkv')]"
 			]
 		},
 		{
@@ -474,7 +447,7 @@
 					"password": {
 						"type": "AzureKeyVaultSecret",
 						"store": {
-							"referenceName": "DevSharedkv",
+							"referenceName": "EnvSharedkv",
 							"type": "LinkedServiceReference"
 						},
 						"secretName": "fcsdeploy-password"
@@ -487,7 +460,7 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/integrationRuntimes/IntegrationRuntime')]",
-				"[concat(variables('factoryId'), '/linkedServices/DevSharedkv')]"
+				"[concat(variables('factoryId'), '/linkedServices/EnvSharedkv')]"
 			]
 		},
 		{
