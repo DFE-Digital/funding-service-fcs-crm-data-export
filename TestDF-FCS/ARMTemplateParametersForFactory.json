@@ -20,7 +20,7 @@
 		"DVFCSDAT_properties_typeProperties_servicePrincipalId": {
 			"value": "86ef8a18-eb0f-4699-b21f-471a8ef0c6e0"
 		},
-		"DevSharedkv_properties_typeProperties_baseUrl": {
+		"EnvSharedkv_properties_typeProperties_baseUrl": {
 			"value": "https://fcs-dev-shared-kv.vault.azure.net/"
 		},
 		"WADLogsTable_properties_typeProperties_serviceEndpoint": {
@@ -59,7 +59,7 @@
 		"linkedService1_properties_typeProperties_serviceEndpoint": {
 			"value": "https://fcsappstoragedev.blob.core.windows.net/"
 		},
-		"DATkv_properties_typeProperties_baseUrl": {
+		"Envkv_properties_typeProperties_baseUrl": {
 			"value": "https://fcs-dev-dat-kv.vault.azure.net/"
 		},
 		"default_properties_DomainName_value": {

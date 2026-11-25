@@ -4,8 +4,7 @@
 	"parameters": {
 		"factoryName": {
 			"type": "string",
-			"metadata": "Data Factory name",
-			"defaultValue": "TestDF-FCS"
+			"metadata": "Data Factory name"
 		}
 	},
 	"variables": {
